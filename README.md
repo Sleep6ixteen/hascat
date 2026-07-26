@@ -59,49 +59,17 @@ hashcat-gpu -m 1000 hashes.txt wordlist.txt -r rules/best64.rule
 > Todos os argumentos são repassados diretamente ao hashcat —
 > a [documentação oficial](https://hashcat.net/wiki/) vale 100% aqui.
 
-### Saída real — `hashcat-gpu -I`
+### `hashcat-gpu -I` — GPU detectada
 
-```
-hashcat (v7.1.2) starting in backend information mode
+![hashcat-gpu -I](docs/screenshots/01_gpu_info.png)
 
-OpenCL Info:
-============
+### `hashcat-gpu -b -m 1000` — Benchmark NTLM (~181 MH/s)
 
-OpenCL Platform ID #1
-  Vendor..: Imagination Technologies
-  Name....: PowerVR
-  Version.: OpenCL 3.0
+![benchmark NTLM](docs/screenshots/03_benchmark.png)
 
-  Backend Device ID #01
-    Type...........: GPU
-    Vendor.........: Imagination Technologies
-    Name...........: PowerVR B-Series BXM-8-256
-    Version........: OpenCL 3.0
-    Processor(s)...: 1
-    Clock..........: 390
-    Memory.Total...: 7603 MB (limited to 950 MB allocatable in one block)
-    Memory.Free....: 3801 MB
-    Memory.Unified.: 1
-    Local.Memory...: 28 KB
-    OpenCL.Version.: OpenCL C 3.0
-    Driver.Version.: 25.1@6715691
-```
+### Hooks ativos — prova das 4 camadas contornadas
 
-### Saída real — `hashcat-gpu -b -m 1000` (benchmark NTLM)
-
-```
-hashcat (v7.1.2) starting in benchmark mode
-
-OpenCL API (OpenCL 3.0) - Platform #1 [Imagination Technologies]
-=================================================================
-* Device #01: PowerVR B-Series BXM-8-256, 3801/7603 MB (950 MB allocatable), 1MCU
-
------------------------
-* Hash-Mode 1000 (NTLM)
------------------------
-
-Speed.#01........:   181.3 MH/s (44.49ms) @ Accel:34 Loops:512 Thr:512 Vec:1
-```
+![hooks ativos](docs/screenshots/02_hooks.png)
 
 ---
 
@@ -130,6 +98,8 @@ Em builds de produção (`user`) ele recusa.
 **Solução:** `prophook.so` (via `LD_PRELOAD`) intercepta
 `__system_property_get` e reporta build `userdebug` + `ro.debuggable=1`.
 
+![radare2 disasm __system_property_get](docs/screenshots/05_r2_property_hook.png)
+
 </details>
 
 <details>
@@ -142,6 +112,8 @@ registrava a conexão OpenCL numa instância diferente da do processo →
 
 **Solução:** `prophook.so` também intercepta `android_load_sphal_library`
 e redireciona para `dlopen` normal, no namespace correto do processo.
+
+![radare2 disasm android_load_sphal_library](docs/screenshots/06_r2_sphal_hook.png)
 
 </details>
 
@@ -302,15 +274,7 @@ LD_LIBRARY_PATH=~/ocl \
 
 Saída esperada:
 
-```
-plataformas: 1 (ret=0)
-nome: PowerVR
-vendor: Imagination Technologies
-devices: 1 (ret=0)
-device #0 nome: Imagination Technologies
-  global mem: 7603 MB
-  local mem:  28672 bytes
-```
+![clinfo diagnóstico OpenCL](docs/screenshots/04_clinfo.png)
 
 ✅ `plataformas: 1` + `local mem: 28672 bytes` = ponte funcionando.
 
@@ -324,7 +288,11 @@ cd ~/hashcat
 
 # Patch: threshold de local memory 32 KB -> 16 KB (GPU reporta 28 KB)
 sed -i 's/device_local_mem_size < 32768/device_local_mem_size < 16384/' src/backend.c
+```
 
+![patch backend.c](docs/screenshots/07_patch_backend.png)
+
+```bash
 # Confirmar o patch
 grep "device_local_mem_size < " src/backend.c | grep -v dynamic
 
