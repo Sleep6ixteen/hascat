@@ -1,0 +1,14 @@
+# Binários do driver PowerVR (vendor — não redistribuíveis, ~93 MB)
+*.so
+*.so.bak
+
+# Binários compilados
+prophook.so
+clinfo
+
+# Build completo do hashcat (grande, clonar do upstream)
+/hashcat/
+
+# Debug artifacts
+*.lldb
+trace.py
