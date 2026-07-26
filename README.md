@@ -28,7 +28,7 @@
 | Algoritmo | Modo | Velocidade |
 |:---------:|:----:|:----------:|
 | MD5 | `-m 0` | **~82 MH/s** |
-| NTLM | `-m 1000` | **~176 MH/s** |
+| NTLM | `-m 1000` | **~181 MH/s** |
 
 **GPU:** PowerVR BXM-8-256 · 390 MHz · 7.6 GB unified · OpenCL 3.0 · driver 25.1
 
@@ -43,7 +43,7 @@
 hashcat-gpu -I
 
 # Benchmark
-hashcat-gpu -b -m 1000          # NTLM (~176 MH/s)
+hashcat-gpu -b -m 1000          # NTLM (~181 MH/s)
 
 # Quebra com wordlist
 hashcat-gpu -m 0    hashes.txt wordlist.txt         # MD5
@@ -58,6 +58,50 @@ hashcat-gpu -m 1000 hashes.txt wordlist.txt -r rules/best64.rule
 
 > Todos os argumentos são repassados diretamente ao hashcat —
 > a [documentação oficial](https://hashcat.net/wiki/) vale 100% aqui.
+
+### Saída real — `hashcat-gpu -I`
+
+```
+hashcat (v7.1.2) starting in backend information mode
+
+OpenCL Info:
+============
+
+OpenCL Platform ID #1
+  Vendor..: Imagination Technologies
+  Name....: PowerVR
+  Version.: OpenCL 3.0
+
+  Backend Device ID #01
+    Type...........: GPU
+    Vendor.........: Imagination Technologies
+    Name...........: PowerVR B-Series BXM-8-256
+    Version........: OpenCL 3.0
+    Processor(s)...: 1
+    Clock..........: 390
+    Memory.Total...: 7603 MB (limited to 950 MB allocatable in one block)
+    Memory.Free....: 3801 MB
+    Memory.Unified.: 1
+    Local.Memory...: 28 KB
+    OpenCL.Version.: OpenCL C 3.0
+    Driver.Version.: 25.1@6715691
+```
+
+### Saída real — `hashcat-gpu -b -m 1000` (benchmark NTLM)
+
+```
+hashcat (v7.1.2) starting in benchmark mode
+
+OpenCL API (OpenCL 3.0) - Platform #1 [Imagination Technologies]
+=================================================================
+* Device #01: PowerVR B-Series BXM-8-256, 3801/7603 MB (950 MB allocatable), 1MCU
+
+-----------------------
+* Hash-Mode 1000 (NTLM)
+-----------------------
+
+Speed.#01........:   181.3 MH/s (44.49ms) @ Accel:34 Loops:512 Thr:512 Vec:1
+```
 
 ---
 
@@ -249,12 +293,26 @@ clang -o ~/clinfo ~/clinfo.c \
   -I$PREFIX/include \
   -L~/ocl -lOpenCL
 
-# Testar — deve exibir "Platform: PowerVR" e "Device: PowerVR BXM-8-256"
+# Testar
 LD_PRELOAD=~/ocl/prophook.so \
 OCL_ICD_VENDORS=~/ocl/vendors \
 LD_LIBRARY_PATH=~/ocl \
 ~/clinfo
 ```
+
+Saída esperada:
+
+```
+plataformas: 1 (ret=0)
+nome: PowerVR
+vendor: Imagination Technologies
+devices: 1 (ret=0)
+device #0 nome: Imagination Technologies
+  global mem: 7603 MB
+  local mem:  28672 bytes
+```
+
+✅ `plataformas: 1` + `local mem: 28672 bytes` = ponte funcionando.
 
 ---
 
