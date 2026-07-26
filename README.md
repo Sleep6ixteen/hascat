@@ -199,13 +199,13 @@ cp /vendor/lib64/libgralloc_extra.so   ~/ocl/
 cp /vendor/lib64/libged.so             ~/ocl/
 
 # Subdiretório mt6855
-cp /vendor/lib64/mt6855/libPVRMtkutils.so      ~/ocl/
-cp /vendor/lib64/mt6855/libpvr_mapper_utils.so ~/ocl/
-cp /vendor/lib64/mt6855/libPVROCL.so           ~/ocl/
-cp /vendor/lib64/mt6855/libPVROCL.so           ~/ocl/libPVROCL.so.bak  # backup
+cp /vendor/lib64/mt6855/libPVRMtkutils.so          ~/ocl/
+cp /vendor/lib64/hw/mt6855/libpvr_mapper_utils.so  ~/ocl/
+cp /vendor/lib64/mt6855/libPVROCL.so               ~/ocl/
+cp /vendor/lib64/mt6855/libPVROCL.so               ~/ocl/libPVROCL.so.bak  # backup
 
 # Mapper gralloc
-cp /vendor/lib64/hw/mt6855/mapper.powervr.so   ~/ocl/
+cp /vendor/lib64/hw/mt6855/mapper.powervr.so       ~/ocl/
 ```
 
 ---
@@ -229,22 +229,40 @@ cd ~/ocl
 python3 - << 'PYEOF'
 import os
 
+# Ordem importa: prefixos mais longos primeiro
+PREFIXES = [
+    b'/system/vendor/lib64/',
+    b'/vendor/lib64/mt6855/',
+    b'/vendor/lib64/hw/mt6855/',
+    b'/vendor/lib64/hw/',
+    b'/vendor/lib64/',
+]
+
 def patch_lib(path):
     with open(path, 'rb') as f:
         data = f.read()
     changed = False
-    for prefix in [b'/vendor/lib64/mt6855/', b'/vendor/lib64/hw/mt6855/',
-                   b'/vendor/lib64/hw/',     b'/vendor/lib64/',
-                   b'/system/vendor/lib64/']:
-        while prefix in data:
-            idx = data.index(prefix)
-            end = data.index(b'\x00', idx)
-            original = data[idx:end]
-            filename  = original[len(prefix):]
-            replacement = filename + b'\x00' * len(prefix)
-            data = data[:idx] + replacement + data[end:]
+    for prefix in PREFIXES:
+        pos = 0
+        while True:
+            idx = data.find(prefix, pos)
+            if idx < 0:
+                break
+            end = data.find(b'\x00', idx + len(prefix))
+            if end < 0:
+                pos = idx + 1
+                continue
+            filename = data[idx + len(prefix):end]
+            old_total = end - idx
+            new_content = filename
+            if len(new_content) > old_total:
+                pos = idx + 1
+                continue
+            padding = b'\x00' * (old_total - len(new_content))
+            data = data[:idx] + new_content + padding + data[end:]
             changed = True
-            print(f"  patched: {original.decode(errors='replace')} -> {filename.decode(errors='replace')}")
+            print(f"  patched: {prefix.decode()}{filename.decode(errors='replace')} -> {filename.decode(errors='replace')}")
+            pos = idx + len(new_content)
     if changed:
         with open(path, 'wb') as f:
             f.write(data)
@@ -348,7 +366,7 @@ exec "$HOME/hashcat/hashcat" "$@"
 
 ```bash
 hashcat-gpu -I          # lista a GPU PowerVR
-hashcat-gpu -b -m 1000  # benchmark NTLM → esperado ~176 MH/s
+hashcat-gpu -b -m 1000  # benchmark NTLM → esperado ~181 MH/s
 ```
 
 ---
