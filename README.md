@@ -21,6 +21,26 @@
 
 ---
 
+## ⚡ Instalação rápida
+
+Abra o Termux e rode um único comando:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Sleep6ixteen/hascat/main/install.sh | bash
+```
+
+O script faz tudo automaticamente:
+- Verifica se o hardware é compatível (MT6855)
+- Copia as libs do driver de `/vendor/lib64`
+- Patcha os caminhos absolutos nos binários
+- Compila `prophook.so` e o hashcat com o patch de local memory
+- Instala o comando `hashcat-gpu` em `$PREFIX/bin`
+- Testa e confirma que a GPU foi detectada
+
+> **Reinstalação após OTA:** basta rodar o mesmo comando novamente.
+
+---
+
 ## 📊 Performance
 
 <div align="center">
